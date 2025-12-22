@@ -1,0 +1,27 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# production
+/dist
+
+# misc
+.DS_Store
+
+# environment variables - CRITICAL!
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Firebase service account
+serviceAccountKey.json
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
