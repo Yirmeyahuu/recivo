@@ -3,11 +3,9 @@ import { Login } from '@/features/auth/Login';
 import { Register } from '@/features/auth/Register';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-
-// Placeholder components
-const Dashboard = () => <div>Dashboard</div>;
-const ReceiptList = () => <div>Receipt List</div>;
+import { Dashboard } from '@/pages/Dashboard'; // <-- Use your real Dashboard
+import { DashboardLayout } from '@/components/layout/DashboardLayout'; // <-- import this
+import { ReceiptList } from '@/features/receipts/ReceiptList';
 
 export const router = createBrowserRouter([
   {
