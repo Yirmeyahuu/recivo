@@ -11,11 +11,15 @@ node_modules/
 dist/
 build/
 
-# Environment variables - CRITICAL!
+# environment variables - DO NOT COMMIT!
 .env
 .env.local
+.env.development
 .env.production
-.env.*.local
+.env.test
+.env*.local
+production.env
+*.env
 
 # IDE
 .vscode/

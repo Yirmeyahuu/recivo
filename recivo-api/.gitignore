@@ -10,12 +10,15 @@
 # misc
 .DS_Store
 
-# environment variables - CRITICAL!
+# environment variables - DO NOT COMMIT!
 .env
 .env.local
 .env.development
 .env.production
-.env.*.local
+.env.test
+.env*.local
+production.env
+*.env
 
 # Firebase service account
 serviceAccountKey.json
