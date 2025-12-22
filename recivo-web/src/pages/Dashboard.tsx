@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 interface LineItem {
   id: string;
@@ -27,20 +28,62 @@ interface Receipt {
   change: number;
   receiptNumber: string;
   date: string;
-  createdAt?: any; // Firestore timestamp
+  createdAt?: any;
+}
+
+interface Settings {
+  businessName: string;
+  businessAddress: string;
+  businessContact: string;
+  businessEmail: string;
+  currency: string;
+  currencySymbolPosition: 'before' | 'after';
+  taxEnabled: boolean;
+  defaultTaxRate: number;
+  showDiscountField: boolean;
+  footerMessage: string;
 }
 
 export const Dashboard = () => {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState('');
 
-  // Mock business data (will come from Business Settings later)
-  const [businessInfo] = useState({
-    name: 'My Business',
-    address: 'Not Set',
-    contact: 'Not Set',
-    email: 'Not Set',
+  // Fetch settings from Firestore
+  const [settings, setSettings] = useState<Settings>({
+    businessName: 'Not Set',
+    businessAddress: 'Not Set',
+    businessContact: '',
+    businessEmail: 'Not Set',
+    currency: 'PHP',
+    currencySymbolPosition: 'before',
+    taxEnabled: true,
+    defaultTaxRate: 12,
+    showDiscountField: true,
+    footerMessage: 'Thank you for your purchase!',
   });
 
+  // Fetch display name from settings
+  useEffect(() => {
+    const fetchDisplayName = async () => {
+      if (!user?.uid) return;
+      try {
+        const docRef = doc(db, 'settings', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().ownerName) {
+          setDisplayName(docSnap.data().ownerName);
+        } else {
+          setDisplayName(user?.displayName || 'User');
+        }
+      } catch (error) {
+        console.error('Error fetching display name:', error);
+        setDisplayName(user?.displayName || 'User');
+      }
+    };
+    fetchDisplayName();
+  }, [user?.uid, user?.displayName]);
+
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Customer info (optional)
@@ -56,7 +99,31 @@ export const Dashboard = () => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountPaid, setAmountPaid] = useState(0);
   const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  const [taxRate, setTaxRate] = useState(12);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!user?.uid) {
+        setLoadingSettings(false);
+        return;
+      }
+      try {
+        const docRef = doc(db, 'settings', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as Settings;
+          setSettings(data);
+          setTaxRate(data.defaultTaxRate);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    fetchSettings();
+  }, [user?.uid]);
 
   // Add new item row
   const addItem = () => {
@@ -91,11 +158,28 @@ export const Dashboard = () => {
     }));
   };
 
+  // Get currency symbol
+  const getCurrencySymbol = () => {
+    const symbols: { [key: string]: string } = {
+      PHP: '₱',
+      USD: '$',
+      EUR: '€',
+    };
+    return symbols[settings.currency] || '₱';
+  };
+
+  const formatCurrency = (amount: number) => {
+    const symbol = getCurrencySymbol();
+    return settings.currencySymbolPosition === 'before'
+      ? `${symbol}${amount.toFixed(2)}`
+      : `${amount.toFixed(2)}${symbol}`;
+  };
+
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const discountAmount = (subtotal * discount) / 100;
+  const discountAmount = settings.showDiscountField ? (subtotal * discount) / 100 : 0;
   const taxableAmount = subtotal - discountAmount;
-  const taxAmount = (taxableAmount * taxRate) / 100;
+  const taxAmount = settings.taxEnabled ? (taxableAmount * taxRate) / 100 : 0;
   const totalAmount = taxableAmount + taxAmount;
   const change = amountPaid - totalAmount;
 
@@ -110,9 +194,9 @@ export const Dashboard = () => {
   // Save receipt to Firestore
   const handleSaveReceipt = async () => {
     const receipt: Receipt = {
-      businessName: businessInfo.name,
-      businessAddress: businessInfo.address,
-      businessContact: businessInfo.contact,
+      businessName: settings.businessName,
+      businessAddress: settings.businessAddress,
+      businessContact: settings.businessContact,
       customerName: customerName || undefined,
       customerContact: customerContact || undefined,
       items: items.filter(item => item.name.trim() !== ''),
@@ -128,7 +212,6 @@ export const Dashboard = () => {
       createdAt: Timestamp.now(),
     };
 
-
     try {
       await addDoc(collection(db, 'receipts'), {
         ...receipt,
@@ -136,13 +219,20 @@ export const Dashboard = () => {
       });
       setNotification({ type: 'success', message: 'Receipt saved successfully!' });
       setTimeout(() => setNotification(null), 3000);
-      // Optionally reset form here
     } catch (error) {
       setNotification({ type: 'error', message: 'Failed to save receipt.' });
       setTimeout(() => setNotification(null), 3000);
       console.error(error);
     }
   };
+
+  if (loadingSettings) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <span className="text-gray-500">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -167,9 +257,10 @@ export const Dashboard = () => {
           <span className="font-medium">{notification.message}</span>
         </div>
       )}
+      
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Receipt</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Generate A Receipt</h1>
         <p className="text-sm text-gray-600 mt-1">
           Fill in the details to generate a new receipt
         </p>
@@ -188,7 +279,7 @@ export const Dashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Business Information</h2>
               </div>
               <button
-                onClick={() => window.location.href = '/settings'}
+                onClick={() => navigate('/settings')}
                 className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 transition"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,10 +289,12 @@ export const Dashboard = () => {
               </button>
             </div>
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-lg p-4 space-y-2">
-              <p className="font-semibold text-gray-900">{businessInfo.name}</p>
-              <p className="text-sm text-gray-600">{businessInfo.address}</p>
-              <p className="text-sm text-gray-600">{businessInfo.contact}</p>
-              <p className="text-sm text-gray-600">{businessInfo.email}</p>
+              <p className="font-semibold text-gray-900">{settings.businessName}</p>
+              <p className="text-sm text-gray-600">{settings.businessAddress}</p>
+              {settings.businessContact && (
+                <p className="text-sm text-gray-600">{settings.businessContact}</p>
+              )}
+              <p className="text-sm text-gray-600">{settings.businessEmail}</p>
             </div>
           </div>
 
@@ -306,7 +399,7 @@ export const Dashboard = () => {
                         />
                       </td>
                       <td className="py-3 px-2 text-right font-semibold text-gray-900">
-                        ₱{item.total.toFixed(2)}
+                        {formatCurrency(item.total)}
                       </td>
                       <td className="py-3 px-2">
                         <button
@@ -378,57 +471,63 @@ export const Dashboard = () => {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-semibold">₱{subtotal.toFixed(2)}</span>
+                <span className="font-semibold">{formatCurrency(subtotal)}</span>
               </div>
 
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Discount:</span>
-                  <input
-                    type="number"
-                    value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
-                    min="0"
-                    max="100"
-                    className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-right"
-                  />
-                  <span className="text-gray-500">%</span>
+              {/* Show discount only if enabled */}
+              {settings.showDiscountField && (
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Discount:</span>
+                    <input
+                      type="number"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value))}
+                      min="0"
+                      max="100"
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-right"
+                    />
+                    <span className="text-gray-500">%</span>
+                  </div>
+                  <span className="font-semibold text-red-600">-{formatCurrency(discountAmount)}</span>
                 </div>
-                <span className="font-semibold text-red-600">-₱{discountAmount.toFixed(2)}</span>
-              </div>
+              )}
 
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Tax:</span>
-                  <input
-                    type="number"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(Number(e.target.value))}
-                    min="0"
-                    max="100"
-                    className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-right"
-                  />
-                  <span className="text-gray-500">%</span>
+              {/* Show tax only if enabled */}
+              {settings.taxEnabled && (
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Tax:</span>
+                    <input
+                      type="number"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(Number(e.target.value))}
+                      min="0"
+                      max="100"
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-xs text-right"
+                    />
+                    <span className="text-gray-500">%</span>
+                  </div>
+                  <span className="font-semibold">+{formatCurrency(taxAmount)}</span>
                 </div>
-                <span className="font-semibold">+₱{taxAmount.toFixed(2)}</span>
-              </div>
+              )}
 
               <div className="border-t border-gray-200 pt-3 mt-3">
                 <div className="flex justify-between text-lg font-bold">
                   <span className="text-gray-900">Total:</span>
-                  <span className="text-emerald-600">₱{totalAmount.toFixed(2)}</span>
+                  <span className="text-emerald-600">{formatCurrency(totalAmount)}</span>
                 </div>
               </div>
 
               <div className="border-t border-gray-200 pt-3 mt-3 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Amount Paid:</span>
-                  <span className="font-semibold">₱{amountPaid.toFixed(2)}</span>
+                  <span className="font-semibold">{formatCurrency(amountPaid)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Change:</span>
                   <span className={`font-semibold ${change < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    ₱{change.toFixed(2)}
+                    {formatCurrency(change)}
                   </span>
                 </div>
               </div>
@@ -446,9 +545,16 @@ export const Dashboard = () => {
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Cashier:</span>
-                <span>{user?.displayName || user?.email}</span>
+                <span>{displayName || user?.displayName || user?.email || 'User'}</span>
               </div>
             </div>
+
+            {/* Footer Message */}
+            {settings.footerMessage && (
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <p className="text-xs text-center text-gray-500 italic">{settings.footerMessage}</p>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="mt-6 space-y-3">
