@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "recivo-web/dist",
+  "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
