@@ -28,3 +28,7 @@ production.env
 # OS
 .DS_Store
 .vercel
+
+# Mobile
+android/
+ios/
