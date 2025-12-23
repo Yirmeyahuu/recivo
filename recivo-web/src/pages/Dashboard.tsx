@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { ReceiptPreviewModal } from '@/components/modal/ReceiptPreviewModal';
 
 interface LineItem {
   id: string;
@@ -48,6 +49,9 @@ export const Dashboard = () => {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('');
+
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [savedReceipt, setSavedReceipt] = useState<Receipt | null>(null);
 
   // Fetch settings from Firestore
   const [settings, setSettings] = useState<Settings>({
@@ -217,6 +221,11 @@ export const Dashboard = () => {
         ...receipt,
         userId: user?.uid || null,
       });
+      
+      // Save receipt data and show modal
+      setSavedReceipt(receipt);
+      setShowPreviewModal(true);
+      
       setNotification({ type: 'success', message: 'Receipt saved successfully!' });
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
@@ -224,6 +233,31 @@ export const Dashboard = () => {
       setTimeout(() => setNotification(null), 3000);
       console.error(error);
     }
+  };
+
+  // Close modal and reset form
+  const handleCloseModal = () => {
+    setShowPreviewModal(false);
+    setSavedReceipt(null);
+    
+    // Reset form
+    setCustomerName('');
+    setCustomerContact('');
+    setItems([{ id: '1', name: '', quantity: 1, unitPrice: 0, total: 0 }]);
+    setPaymentMethod('Cash');
+    setAmountPaid(0);
+    setDiscount(0);
+    setTaxRate(settings.defaultTaxRate);
+  };
+
+  const handleDownloadSuccess = () => {
+    setNotification({ type: 'success', message: 'Receipt downloaded successfully!' });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleDownloadError = () => {
+    setNotification({ type: 'error', message: 'Failed to download receipt' });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   if (loadingSettings) {
@@ -256,6 +290,19 @@ export const Dashboard = () => {
           )}
           <span className="font-medium">{notification.message}</span>
         </div>
+      )}
+
+      {/* Receipt Preview Modal */}
+      {showPreviewModal && savedReceipt && (
+        <ReceiptPreviewModal
+          receipt={savedReceipt}
+          cashierName={displayName || user?.displayName || user?.email || 'User'}
+          footerMessage={settings.footerMessage}
+          formatCurrency={formatCurrency}
+          onClose={handleCloseModal}
+          onDownloadSuccess={handleDownloadSuccess}
+          onDownloadError={handleDownloadError}
+        />
       )}
       
       {/* Header */}
@@ -357,14 +404,15 @@ export const Dashboard = () => {
 
             {/* Items Table */}
             <div className="overflow-x-auto">
-              <table className="w-full">
+              {/* Desktop View - Table */}
+              <table className="hidden md:table w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Item Name</th>
-                    <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-24">Qty</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-gray-700 w-32">Unit Price</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-gray-700 w-32">Total</th>
-                    <th className="w-12"></th>
+                    <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700 w-28">Qty</th>
+                    <th className="text-right py-3 px-2 text-sm font-semibold text-gray-700 w-36">Unit Price</th>
+                    <th className="text-right py-3 px-2 text-sm font-semibold text-gray-700 w-36">Total</th>
+                    <th className="w-16"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,7 +433,7 @@ export const Dashboard = () => {
                           value={item.quantity}
                           onChange={(e) => updateItem(item.id, 'quantity', Number(e.target.value))}
                           min="1"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-center"
+                          className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-center"
                         />
                       </td>
                       <td className="py-3 px-2">
@@ -395,17 +443,17 @@ export const Dashboard = () => {
                           onChange={(e) => updateItem(item.id, 'unitPrice', Number(e.target.value))}
                           min="0"
                           step="0.01"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-right"
+                          className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-right"
                         />
                       </td>
-                      <td className="py-3 px-2 text-right font-semibold text-gray-900">
+                      <td className="py-3 px-2 text-right font-semibold text-gray-900 text-sm">
                         {formatCurrency(item.total)}
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 text-center">
                         <button
                           onClick={() => removeItem(item.id)}
                           disabled={items.length === 1}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -416,6 +464,80 @@ export const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
+            
+              {/* Mobile View - Grid Cards */}
+              <div className="md:hidden space-y-4">
+                {items.map((item) => (
+                  <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                    {/* First Row: Item Name & Quantity */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Item Name
+                        </label>
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                          placeholder="Item name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Qty
+                        </label>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, 'quantity', Number(e.target.value))}
+                          min="1"
+                          className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-center"
+                        />
+                      </div>
+                    </div>
+            
+                    {/* Second Row: Unit Price & Total */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Unit Price
+                        </label>
+                        <input
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) => updateItem(item.id, 'unitPrice', Number(e.target.value))}
+                          min="0"
+                          step="0.01"
+                          className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm text-right"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Total
+                        </label>
+                        <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-sm font-semibold text-emerald-700 text-right">
+                          {formatCurrency(item.total)}
+                        </div>
+                      </div>
+                    </div>
+            
+                    {/* Delete Button */}
+                    <div className="flex justify-end pt-2 border-t border-gray-200">
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        disabled={items.length === 1}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -567,15 +689,6 @@ export const Dashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Save Receipt
-              </button>
-              
-              <button
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Receipt
               </button>
             </div>
           </div>
