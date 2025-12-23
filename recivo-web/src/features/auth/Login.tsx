@@ -45,10 +45,23 @@ export const Login = () => {
       <div className="max-w-md w-full">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-2xl mb-4 shadow-lg shadow-emerald-900/50">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white border-2 border-emerald-500 rounded-2xl mb-4 shadow-lg shadow-emerald-900/50">
+            <img 
+              src="/recivo-logo.webp" 
+              alt="Recivo Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback to SVG icon if image fails to load
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = `
+                  <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-xl shadow-lg shadow-emerald-900/30">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                `;
+              }}
+            />
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
           <p className="text-gray-300">Sign in to your Recivo account</p>
@@ -99,7 +112,7 @@ export const Login = () => {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+              <span className="px-2 bg-gray-100 text-gray-500">Or continue with email</span>
             </div>
           </div>
 
