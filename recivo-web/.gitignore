@@ -27,3 +27,4 @@ production.env
 
 # OS
 .DS_Store
+.vercel
