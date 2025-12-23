@@ -1,33 +1,25 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { authService } from '@/services/UnifiedAuth';
 
 export const authApi = {
   register: async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName });
+    const user = await authService.register(email, password, displayName);
     sessionStorage.setItem('justLoggedIn', 'true');
-    return userCredential.user;
+    return user;
   },
 
   login: async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = await authService.login(email, password);
     sessionStorage.setItem('justLoggedIn', 'true');
-    return userCredential.user;
+    return user;
   },
 
   loginWithGoogle: async () => {
-    const userCredential = await signInWithPopup(auth, googleProvider);
+    const user = await authService.loginWithGoogle();
     sessionStorage.setItem('justLoggedIn', 'true');
-    return userCredential.user;
+    return user;
   },
 
   logout: async () => {
-    await signOut(auth);
+    await authService.logout();
   },
 };
