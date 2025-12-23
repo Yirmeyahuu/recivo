@@ -13,7 +13,9 @@ export const useAuth = () => {
 
     if (isNativePlatform()) {
       // Mobile: Use Capacitor auth state listener
-      const listener = FirebaseAuthentication.addListener('authStateChange', async (result) => {
+      let listenerHandle: any;
+      
+      FirebaseAuthentication.addListener('authStateChange', async (result) => {
         if (result.user) {
           const token = await FirebaseAuthentication.getIdToken();
           setToken(token.token);
@@ -23,6 +25,8 @@ export const useAuth = () => {
           setUser(null);
         }
         setLoading(false);
+      }).then((handle) => {
+        listenerHandle = handle;
       });
 
       // Get initial user
@@ -36,7 +40,7 @@ export const useAuth = () => {
       });
 
       return () => {
-        listener.remove();
+        listenerHandle?.remove();
       };
     } else {
       // Web: Use Firebase Web SDK
