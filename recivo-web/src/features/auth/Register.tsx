@@ -11,21 +11,21 @@ export const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const [googleLoading, setGoogleLoading] = useState(false);
+  // const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    setGoogleLoading(true);
+  // const handleGoogleLogin = async () => {
+  //   setError('');
+  //   setGoogleLoading(true);
 
-    try {
-      await authApi.loginWithGoogle();
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+  //   try {
+  //     await authApi.loginWithGoogle();
+  //     navigate('/dashboard');
+  //   } catch (err: any) {
+  //     setError(err.message || 'Failed to sign up with Google');
+  //   } finally {
+  //     setGoogleLoading(false);
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

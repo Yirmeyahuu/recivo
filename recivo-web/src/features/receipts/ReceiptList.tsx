@@ -108,7 +108,6 @@ export const ReceiptList = () => {
                 >
                 {/* ...card content... */}
                 <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-xs text-gray-500">#{receipt.receiptNumber || receipt.id}</span>
                     <span className="text-xs px-2 py-1 rounded bg-emerald-200 text-emerald-800 font-semibold">{receipt.paymentMethod}</span>
                 </div>
                 <div className="font-bold text-lg text-emerald-700">₱{receipt.totalAmount?.toFixed(2)}</div>
