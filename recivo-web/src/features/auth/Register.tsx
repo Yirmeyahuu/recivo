@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from './auth.api';
 import { isInAppBrowser } from '@/utils/PlatformDetection';
@@ -11,34 +11,13 @@ export const Register = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const navigate = useNavigate();
-
-  // Check for redirect result on mount (Google Sign-in redirect)
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-        if (justLoggedIn) {
-          sessionStorage.removeItem('justLoggedIn');
-          navigate('/dashboard');
-          return;
-        }
-      } catch (error: any) {
-        setError(error.message || 'Failed to complete Google sign-up');
-      } finally {
-        setCheckingRedirect(false);
-      }
-    };
-
-    handleRedirect();
-  }, [navigate]);
 
   const handleGoogleSignUp = async () => {
     const inAppBrowser = isInAppBrowser();
     
     if (inAppBrowser) {
-      setError(`Google Sign-in may not work properly in ${inAppBrowser} browser. For best experience, please open this page in Safari or Chrome.`);
+      setError(`Google Sign-in does not work in ${inAppBrowser}'s browser. Please open this page in Safari, Chrome, or your default browser.`);
       return;
     }
 
@@ -49,6 +28,7 @@ export const Register = () => {
       await authApi.loginWithGoogle();
       navigate('/dashboard');
     } catch (err: any) {
+      console.error('Google sign-up error:', err);
       setError(err.message || 'Failed to sign up with Google');
       setGoogleLoading(false);
     }
@@ -68,17 +48,6 @@ export const Register = () => {
       setLoading(false);
     }
   };
-
-  if (checkingRedirect) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 px-4 py-12">

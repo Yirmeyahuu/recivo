@@ -1,87 +1,63 @@
-import { Capacitor } from '@capacitor/core';
-
-export const isNativePlatform = () => {
-  return Capacitor.isNativePlatform();
-};
-
-export const isWeb = () => {
-  return !Capacitor.isNativePlatform();
-};
-
 // Detect if running in an in-app browser
-export const isInAppBrowser = () => {
+export const isInAppBrowser = (): string | false => {
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
   
   // Facebook
   if (userAgent.includes('FBAN') || userAgent.includes('FBAV')) {
-    return 'facebook';
+    return 'Facebook';
   }
   
   // Instagram
   if (userAgent.includes('Instagram')) {
-    return 'instagram';
+    return 'Instagram';
   }
   
   // Messenger
   if (userAgent.includes('Messenger')) {
-    return 'messenger';
+    return 'Messenger';
   }
   
   // Twitter
   if (userAgent.includes('Twitter')) {
-    return 'twitter';
+    return 'Twitter';
   }
   
   // TikTok
   if (userAgent.includes('TikTok')) {
-    return 'tiktok';
+    return 'TikTok';
   }
   
   // LinkedIn
   if (userAgent.includes('LinkedInApp')) {
-    return 'linkedin';
+    return 'LinkedIn';
   }
   
   // Line
   if (userAgent.includes('Line')) {
-    return 'line';
+    return 'Line';
   }
   
   // WeChat
   if (userAgent.includes('MicroMessenger')) {
-    return 'wechat';
+    return 'WeChat';
   }
   
   return false;
 };
 
 // Detect iOS
-export const isIOS = () => {
+export const isIOS = (): boolean => {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 };
 
 // Detect Android
-export const isAndroid = () => {
+export const isAndroid = (): boolean => {
   return /Android/.test(navigator.userAgent);
 };
 
 // Get device type
-export const getDeviceType = () => {
+export const getDeviceType = (): 'ios' | 'android' | 'desktop' => {
   if (isIOS()) return 'ios';
   if (isAndroid()) return 'android';
   return 'desktop';
-};
-
-// Check if browser supports popups (needed for Google Auth)
-export const supportsPopups = () => {
-  try {
-    const test = window.open('', '_blank');
-    if (test) {
-      test.close();
-      return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
-  }
 };
