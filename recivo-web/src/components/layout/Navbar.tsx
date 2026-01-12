@@ -18,21 +18,8 @@ export const Navbar = () => {
   const user = useAuthStore((state) => state.user);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || 'User');
-  const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-
-  // Detect mobile viewport
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Fetch display name from settings
   useEffect(() => {
