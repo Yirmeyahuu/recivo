@@ -1,5 +1,5 @@
 import { useSubscription } from './useSubscription';
-import { SubscriptionTier } from '../types';
+import { SubscriptionTier } from '../types/subscription.types';
 
 /**
  * Hook to check if user has access to a feature based on subscription tier

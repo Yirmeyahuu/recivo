@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { isInAppBrowser, getDeviceType, isIOS, isAndroid } from '@/utils/PlatformDetection';
+import { isInAppBrowser, getDeviceType } from '@/utils/PlatformDetection';
 
 export const InAppBrowserWarning = () => {
   const [inAppBrowser, setInAppBrowser] = useState<string | false>(false);

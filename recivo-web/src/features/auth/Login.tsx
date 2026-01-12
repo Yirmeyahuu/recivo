@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from './auth.api';
+import { isInAppBrowser } from '@/utils/PlatformDetection';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,7 +10,29 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const navigate = useNavigate();
+
+  // Check for redirect result on mount (Google Sign-in redirect)
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        // Check if we're coming back from a Google redirect
+        const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+        if (justLoggedIn) {
+          sessionStorage.removeItem('justLoggedIn');
+          navigate('/dashboard');
+          return;
+        }
+      } catch (error: any) {
+        setError(error.message || 'Failed to complete Google sign-in');
+      } finally {
+        setCheckingRedirect(false);
+      }
+    };
+
+    handleRedirect();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,18 +50,37 @@ export const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
+    const inAppBrowser = isInAppBrowser();
+    
+    if (inAppBrowser) {
+      setError(`Google Sign-in may not work properly in ${inAppBrowser} browser. For best experience, please open this page in Safari or Chrome.`);
+      return;
+    }
+
     setError('');
     setGoogleLoading(true);
 
     try {
       await authApi.loginWithGoogle();
+      // If using redirect, the page will reload, so this won't execute
+      // If using popup, navigate to dashboard
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to login with Google');
-    } finally {
       setGoogleLoading(false);
     }
   };
+
+  if (checkingRedirect) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 px-4 py-12">
@@ -51,7 +93,6 @@ export const Login = () => {
               alt="Recivo Logo" 
               className="w-full h-full object-contain"
               onError={(e) => {
-                // Fallback to SVG icon if image fails to load
                 e.currentTarget.style.display = 'none';
                 e.currentTarget.parentElement!.innerHTML = `
                   <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-xl shadow-lg shadow-emerald-900/30">
@@ -112,7 +153,7 @@ export const Login = () => {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-100 text-gray-500">Or continue with email</span>
+              <span className="px-2 bg-white text-gray-500">Or continue with email</span>
             </div>
           </div>
 
