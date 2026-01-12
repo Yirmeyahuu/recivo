@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from './auth.api';
 import { isInAppBrowser } from '@/utils/PlatformDetection';
@@ -10,7 +10,22 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showLogoutNotification, setShowLogoutNotification] = useState(false);
   const navigate = useNavigate();
+
+  // Check for logout notification
+  useEffect(() => {
+    const justLoggedOut = sessionStorage.getItem('justLoggedOut');
+    if (justLoggedOut) {
+      setShowLogoutNotification(true);
+      sessionStorage.removeItem('justLoggedOut');
+      
+      // Auto-hide after 4 seconds
+      setTimeout(() => {
+        setShowLogoutNotification(false);
+      }, 4000);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +34,7 @@ export const Login = () => {
 
     try {
       await authApi.login(email, password);
+      sessionStorage.setItem('justLoggedIn', 'true');
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to login');
@@ -40,6 +56,7 @@ export const Login = () => {
 
     try {
       await authApi.loginWithGoogle();
+      sessionStorage.setItem('justLoggedIn', 'true');
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Google login error:', err);
@@ -50,6 +67,37 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 px-4 py-12">
+      {/* Logout Success Notification */}
+      {showLogoutNotification && (
+        <div 
+          className="fixed z-50 animate-slide-down
+            top-4 left-4 right-4 
+            sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto
+            max-w-md mx-auto sm:mx-0"
+        >
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 sm:px-6 py-3 rounded-xl shadow-lg shadow-emerald-900/30 flex items-center gap-3 backdrop-blur-sm border border-emerald-400/20">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm sm:text-base truncate">Logged out successfully!</p>
+              <p className="text-xs sm:text-sm text-emerald-100 truncate">See you again soon</p>
+            </div>
+            <button
+              onClick={() => setShowLogoutNotification(false)}
+              className="flex-shrink-0 ml-2 p-1 hover:bg-emerald-600/50 rounded-lg transition-colors"
+              aria-label="Close notification"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md w-full">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
@@ -124,6 +172,7 @@ export const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* ...existing form fields... */}
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
