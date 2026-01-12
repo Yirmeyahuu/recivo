@@ -8,6 +8,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ReceiptList } from '@/features/receipts/ReceiptList';
 import { Settings } from '@/pages/Settings'; 
 import { ChangePassword } from '@/pages/ChangePassword';
+import { PrivacyPolicy } from '@/features/legal/PrivacyPolicy';
+import { TermsOfService } from '@/features/legal/TermsOfService';
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +28,15 @@ export const router = createBrowserRouter([
         element: <Register />,
       },
     ],
+  },
+  // Legal Pages (Public Routes)
+  {
+    path: '/privacy-policy',
+    element: <PrivacyPolicy />,
+  },
+  {
+    path: '/terms-of-service',
+    element: <TermsOfService />,
   },
   {
     element: <ProtectedRoute />,

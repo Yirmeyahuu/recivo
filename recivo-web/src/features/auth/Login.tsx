@@ -287,9 +287,13 @@ export const Login = () => {
         {/* Terms */}
         <p className="text-center text-xs text-gray-400 mt-4 max-w-sm mx-auto">
           Protected by reCAPTCHA and subject to the{' '}
-          <a href="#" className="text-emerald-400 hover:underline">Privacy Policy</a>
+          <Link to="/privacy-policy" className="text-emerald-400 hover:underline">
+            Privacy Policy
+          </Link>
           {' '}and{' '}
-          <a href="#" className="text-emerald-400 hover:underline">Terms of Service</a>
+          <Link to="/terms-of-service" className="text-emerald-400 hover:underline">
+            Terms of Service
+          </Link>
         </p>
       </div>
     </div>
