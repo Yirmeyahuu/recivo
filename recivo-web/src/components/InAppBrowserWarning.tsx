@@ -102,7 +102,7 @@ export const InAppBrowserWarning = () => {
         {/* Dismiss Button */}
         <button
           onClick={() => setShowWarning(false)}
-          className="w-full px-4 py-3 text-gray-600 border border-gray-400 shadow-xl hover:text-gray-900 transition-colors font-medium"
+          className="w-full px-4 py-3 text-gray-600 border rounded-lg border-gray-400 shadow-xl hover:text-gray-900 transition-colors font-medium"
         >
           Continue Anyway (Limited Features)
         </button>
