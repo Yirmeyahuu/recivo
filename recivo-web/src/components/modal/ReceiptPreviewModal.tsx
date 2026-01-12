@@ -1,5 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
+import { createRoot } from 'react-dom/client';
+import { DownloadableReceipt } from '../../features/receipts/DownloadableReceipt';
 
 interface LineItem {
   id: string;
@@ -46,21 +48,7 @@ export const ReceiptPreviewModal = ({
   onDownloadSuccess,
   onDownloadError,
 }: ReceiptPreviewModalProps) => {
-  const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detect mobile viewport
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -71,26 +59,51 @@ export const ReceiptPreviewModal = ({
   }, []);
 
   const handleDownload = async () => {
-    if (!receiptRef.current || isDownloading) return;
+    if (isDownloading) return;
 
     setIsDownloading(true);
     
     try {
-      const canvas = await html2canvas(receiptRef.current, {
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      document.body.appendChild(container);
+
+      // Render the downloadable receipt
+      const root = createRoot(container);
+      root.render(
+        <DownloadableReceipt
+          receipt={receipt}
+          cashierName={cashierName}
+          footerMessage={footerMessage}
+          formatCurrency={formatCurrency}
+        />
+      );
+
+      // Wait for render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(container.firstChild as HTMLElement, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: receiptRef.current.scrollWidth,
-        height: receiptRef.current.scrollHeight,
       });
-      
+
+      // Clean up
+      root.unmount();
+      document.body.removeChild(container);
+
+      // Download
       const link = document.createElement('a');
       link.download = `receipt-${receipt.receiptNumber}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      
+
       onDownloadSuccess?.();
     } catch (error) {
       console.error('Error generating receipt image:', error);
@@ -159,94 +172,83 @@ export const ReceiptPreviewModal = ({
           </button>
         </div>
 
-        {/* Receipt Content - Scrollable */}
+        {/* Receipt Content - Scrollable with Tailwind */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
-          <div 
-            ref={receiptRef} 
-            className="bg-white border border-gray-200 rounded-lg shadow-sm"
-            style={{ 
-              padding: isMobile ? '1.5rem' : '2rem',
-            }}
-          >
-            {/* ...existing receipt content... */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 sm:p-8 max-w-md mx-auto">
             {/* Business Info */}
-            <div className="text-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-300">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+            <div className="text-center mb-6 pb-4 border-b-2 border-gray-300">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 {receipt.businessName}
               </h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 leading-relaxed">
                 {receipt.businessAddress}
               </p>
               {receipt.businessContact && (
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mt-1">
                   {receipt.businessContact}
                 </p>
               )}
             </div>
 
             {/* Receipt Details */}
-            <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2">
-              <div className="flex justify-between text-xs sm:text-sm">
+            <div className="mb-5 space-y-2 text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Receipt #:</span>
                 <span className="font-mono font-semibold text-gray-900">
                   {receipt.receiptNumber}
                 </span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Date:</span>
                 <span className="font-semibold text-gray-900">{receipt.date}</span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm">
+              <div className="flex justify-between">
                 <span className="text-gray-600">Cashier:</span>
                 <span className="font-semibold text-gray-900">{cashierName}</span>
               </div>
             </div>
 
-            {/* Customer Info (if provided) */}
+            {/* Customer Info */}
             {(receipt.customerName || receipt.customerContact) && (
-              <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-300">
-                <p className="text-xs font-semibold text-gray-700 mb-1.5 sm:mb-2">
+              <div className="mb-5 pb-4 border-b-2 border-gray-300">
+                <p className="text-xs font-bold text-gray-700 mb-2 tracking-wider">
                   CUSTOMER:
                 </p>
                 {receipt.customerName && (
-                  <p className="text-xs sm:text-sm text-gray-900">{receipt.customerName}</p>
+                  <p className="text-sm text-gray-900">{receipt.customerName}</p>
                 )}
                 {receipt.customerContact && (
-                  <p className="text-xs sm:text-sm text-gray-600">{receipt.customerContact}</p>
+                  <p className="text-sm text-gray-600 mt-1">{receipt.customerContact}</p>
                 )}
               </div>
             )}
 
             {/* Items Table */}
-            <div className="border-b border-gray-300 pb-3 sm:pb-4 mb-3 sm:mb-4 overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
+            <div className="border-b-2 border-gray-300 pb-4 mb-5">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 text-xs font-semibold text-gray-700">
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-2 px-1 text-xs font-bold text-gray-700 tracking-wider">
                       ITEM
                     </th>
-                    <th className="text-center py-2 px-2 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-center py-2 px-1 text-xs font-bold text-gray-700 tracking-wider">
                       QTY
                     </th>
-                    <th className="text-right py-2 px-2 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-right py-2 px-1 text-xs font-bold text-gray-700 tracking-wider">
                       PRICE
                     </th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-right py-2 px-1 text-xs font-bold text-gray-700 tracking-wider">
                       TOTAL
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {receipt.items.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="py-2 text-gray-900 break-words">{item.name}</td>
-                      <td className="py-2 px-2 text-center text-gray-700 whitespace-nowrap">{item.quantity}</td>
-                      <td className="py-2 px-2 text-right text-gray-700 whitespace-nowrap">
-                        {formatCurrency(item.unitPrice)}
-                      </td>
-                      <td className="py-2 text-right font-semibold text-gray-900 whitespace-nowrap">
-                        {formatCurrency(item.total)}
-                      </td>
+                  {receipt.items.map((item, index) => (
+                    <tr key={item.id} className={index < receipt.items.length - 1 ? 'border-b border-gray-100' : ''}>
+                      <td className="py-3 px-1 text-gray-900 break-words">{item.name}</td>
+                      <td className="py-3 px-1 text-center text-gray-700 font-medium">{item.quantity}</td>
+                      <td className="py-3 px-1 text-right text-gray-700">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-3 px-1 text-right font-semibold text-gray-900">{formatCurrency(item.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -254,7 +256,7 @@ export const ReceiptPreviewModal = ({
             </div>
 
             {/* Totals */}
-            <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+            <div className="mb-5 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal:</span>
                 <span className="font-semibold text-gray-900">{formatCurrency(receipt.subtotal)}</span>
@@ -271,16 +273,14 @@ export const ReceiptPreviewModal = ({
                   <span className="font-semibold text-gray-900">+{formatCurrency(receipt.tax)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-gray-300">
-                <span className="font-bold text-gray-900">TOTAL:</span>
-                <span className="font-bold text-base sm:text-lg text-gray-900">
-                  {formatCurrency(receipt.totalAmount)}
-                </span>
+              <div className="flex justify-between pt-3 border-t-2 border-gray-300 mt-2">
+                <span className="font-bold text-gray-900 text-base">TOTAL:</span>
+                <span className="font-bold text-gray-900 text-xl">{formatCurrency(receipt.totalAmount)}</span>
               </div>
             </div>
 
             {/* Payment Info */}
-            <div className="border-t border-gray-300 pt-3 sm:pt-4 mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+            <div className="border-t-2 border-gray-300 pt-4 mb-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Payment Method:</span>
                 <span className="font-semibold text-gray-900">{receipt.paymentMethod}</span>
@@ -291,14 +291,14 @@ export const ReceiptPreviewModal = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Change:</span>
-                <span className="font-semibold text-emerald-600">{formatCurrency(receipt.change)}</span>
+                <span className="font-bold text-emerald-600 text-base">{formatCurrency(receipt.change)}</span>
               </div>
             </div>
 
             {/* Footer Message */}
             {footerMessage && (
-              <div className="text-center pt-3 sm:pt-4 border-t border-gray-300">
-                <p className="text-xs text-gray-500 italic">
+              <div className="text-center pt-4 border-t-2 border-gray-300">
+                <p className="text-sm italic text-gray-500 leading-relaxed">
                   {footerMessage}
                 </p>
               </div>
@@ -306,7 +306,7 @@ export const ReceiptPreviewModal = ({
           </div>
         </div>
 
-        {/* Modal Actions - Sticky with proper padding */}
+        {/* Modal Actions - Sticky */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row gap-3 sm:rounded-b-2xl shadow-lg">
           <button
             onClick={handleDownload}
