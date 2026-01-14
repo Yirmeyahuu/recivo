@@ -101,9 +101,9 @@ export const Login = () => {
       <div className="max-w-md w-full">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white border-2 border-emerald-500 rounded-2xl mb-4 shadow-lg shadow-emerald-900/50">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg shadow-emerald-900/50">
             <img 
-              src="/recivo-logo.webp" 
+              src="/recivo-v2.svg" 
               alt="Recivo Logo" 
               className="w-full h-full object-contain"
               onError={(e) => {

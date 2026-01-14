@@ -135,7 +135,7 @@ export const Navbar = () => {
             <Link to="/dashboard" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl overflow-hidden">
                 <img 
-                  src="/recivo-logo.webp" 
+                  src="/recivo-v2-bg.svg" 
                   alt="Recivo Logo" 
                   className="w-full h-full object-contain"
                   onError={(e) => {
