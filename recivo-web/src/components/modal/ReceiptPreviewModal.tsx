@@ -138,7 +138,7 @@ export const ReceiptPreviewModal = ({
       onClick={handleBackdropClick}
       style={{ 
         isolation: 'isolate',
-        zIndex: 9999,
+        zIndex: 99,
         margin: 0,
         padding: 0,
         left: 0,
