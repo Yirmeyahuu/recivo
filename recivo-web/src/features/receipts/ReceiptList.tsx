@@ -202,7 +202,7 @@ export const ReceiptList = () => {
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3
+          className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-9999 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3
             ${notification.type === 'success'
               ? 'bg-emerald-600 text-white'
               : 'bg-red-600 text-white'
